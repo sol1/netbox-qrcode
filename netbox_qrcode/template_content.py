@@ -193,10 +193,29 @@ class PrintQRCodesButton(PluginTemplateExtension):
 
     def list_buttons(self):
         request = self.context.get('request')
-        if request and request.resolver_match and request.resolver_match.view_name == 'plugins:netbox_qrcode:qrcode_print_device':
+        if request and request.resolver_match.view_name.startswith('plugins:netbox_qrcode:qrcode_print_'):
+            return ''
+        model_to_url = {
+            'dcim.device': 'plugins:netbox_qrcode:qrcode_print_device',
+            'dcim.rack': 'plugins:netbox_qrcode:qrcode_print_rack',
+            'dcim.cable': 'plugins:netbox_qrcode:qrcode_print_cable',
+            'dcim.location': 'plugins:netbox_qrcode:qrcode_print_location',
+            'dcim.powerfeed': 'plugins:netbox_qrcode:qrcode_print_powerfeed',
+            'dcim.powerpanel': 'plugins:netbox_qrcode:qrcode_print_powerpanel',
+            'dcim.module': 'plugins:netbox_qrcode:qrcode_print_module',
+            'netbox_inventory.asset': 'plugins:netbox_qrcode:qrcode_print_asset',
+        }
+        model = None
+        if self.context.get('object'):
+            model = self.context['object'].__class__
+        if not model:
+            return ''
+        model_label = f"{model._meta.app_label}.{model._meta.model_name}"
+        print_url_name = model_to_url.get(model_label)
+        if not print_url_name:
             return ''
         return self.render('netbox_qrcode/inc/print_qrcodes_button.html', extra_context={
-            'print_url': reverse('plugins:netbox_qrcode:qrcode_print_device')
+            'print_url': reverse(print_url_name)
         })
 
 template_extensions = [
@@ -205,8 +224,8 @@ template_extensions = [
     RackQRCode,
     CableQRCode,
     LocationQRCode,
-    Plugin_Netbox_Inventory,
     PowerFeedQRCode,
     PowerPanelQRCode,
+    Plugin_Netbox_Inventory,
     PrintQRCodesButton,
 ]

@@ -2,10 +2,42 @@ from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from dcim.filtersets import DeviceFilterSet
-from dcim.forms import DeviceFilterForm
-from dcim.models import Device
-from dcim.tables import DeviceTable
+from dcim.filtersets import (
+    CableFilterSet,
+    DeviceFilterSet,
+    LocationFilterSet,
+    ModuleFilterSet,
+    PowerFeedFilterSet,
+    PowerPanelFilterSet,
+    RackFilterSet,
+)
+from dcim.forms import (
+    CableFilterForm,
+    DeviceFilterForm,
+    LocationFilterForm,
+    ModuleFilterForm,
+    PowerFeedFilterForm,
+    PowerPanelFilterForm,
+    RackFilterForm,
+)
+from dcim.models import (
+    Cable,
+    Device,
+    Location,
+    Module,
+    PowerFeed,
+    PowerPanel,
+    Rack,
+)
+from dcim.tables import (
+    CableTable,
+    DeviceTable,
+    LocationTable,
+    ModuleTable,
+    PowerFeedTable,
+    PowerPanelTable,
+    RackTable,
+)
 from netbox.views import generic
 from utilities.htmx import htmx_partial
 
@@ -21,6 +53,7 @@ class QRCodePrintBaseView(generic.ObjectListView):
         context['return_url'] = reverse(
             f'{self.queryset.model._meta.app_label}:{self.queryset.model._meta.model_name}_list'
         )
+        print(context['return_url'])
         return context
 
     def get(self, request):
@@ -69,3 +102,51 @@ class DeviceQRCodePrintView(QRCodePrintBaseView):
     filterset_form = DeviceFilterForm
     table = DeviceTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_device'
+
+
+class RackQRCodePrintView(QRCodePrintBaseView):
+    queryset = Rack.objects.all()
+    filterset = RackFilterSet
+    filterset_form = RackFilterForm
+    table = RackTable
+    bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_rack'
+
+
+class CableQRCodePrintView(QRCodePrintBaseView):
+    queryset = Cable.objects.all()
+    filterset = CableFilterSet
+    filterset_form = CableFilterForm
+    table = CableTable
+    bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_cable'
+
+
+class LocationQRCodePrintView(QRCodePrintBaseView):
+    queryset = Location.objects.all()
+    filterset = LocationFilterSet
+    filterset_form = LocationFilterForm
+    table = LocationTable
+    bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_location'
+
+
+class PowerFeedQRCodePrintView(QRCodePrintBaseView):
+    queryset = PowerFeed.objects.all()
+    filterset = PowerFeedFilterSet
+    filterset_form = PowerFeedFilterForm
+    table = PowerFeedTable
+    bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_powerfeed'
+
+
+class PowerPanelQRCodePrintView(QRCodePrintBaseView):
+    queryset = PowerPanel.objects.all()
+    filterset = PowerPanelFilterSet
+    filterset_form = PowerPanelFilterForm
+    table = PowerPanelTable
+    bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_powerpanel'
+
+
+class ModuleQRCodePrintView(QRCodePrintBaseView):
+    queryset = Module.objects.all()
+    filterset = ModuleFilterSet
+    filterset_form = ModuleFilterForm
+    table = ModuleTable
+    bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_module'
