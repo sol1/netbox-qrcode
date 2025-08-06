@@ -1,0 +1,14 @@
+{% extends 'generic/object_list.html' %}
+{% load i18n %}
+
+{% block title %}Select {{ model|meta:"verbose_name_plural"|capfirst }} to print{% endblock %}
+
+{% block buttons %}
+{% endblock %}
+
+{% block bulk_buttons %}
+<a href="{{ return_url }}" class="btn btn-outline-secondary btn-float">{% trans "Cancel" %}</a>
+<button type="submit" class="btn btn-primary">
+Print QR Codes
+</button>
+{% endblock %}

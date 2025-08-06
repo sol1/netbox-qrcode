@@ -1,8 +1,11 @@
-from packaging import version
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.urls import reverse
 from netbox.plugins import PluginTemplateExtension
-from .template_content_functions import create_text, create_url, config_for_modul, create_QRCode
+from packaging import version
+
+from .template_content_functions import (config_for_modul, create_QRCode,
+                                         create_text, create_url)
 
 # ******************************************************************************************
 # Contains the main functionalities of the plugin and thus creates the content for the 
@@ -165,12 +168,45 @@ class ModuleQRCode(QRCode):
 
 # Commenting out (for now) - make this work on core models first.
 # Class for creating a QR code for the Plugin: Netbox-Inventory (https://github.com/ArnesSI/netbox-inventory)
-#class Plugin_Netbox_Inventory(QRCode):
-#    models = ()'netbox_inventory.asset' # Info for Netbox in which model the plugin should be integrated.
-#
-#    def right_page(self):
-#        return self.Create_PluginContent()
+class Plugin_Netbox_Inventory(QRCode):
+   models = ('netbox_inventory.asset',) # Info for Netbox in which model the plugin should be integrated.
+
+   def right_page(self):
+       return self.Create_PluginContent()
 
 # Connects Netbox Core with the plug-in classes
 # Removed , Plugin_Netbox_Inventory]
-template_extensions = [DeviceQRCode, ModuleQRCode, RackQRCode, CableQRCode, LocationQRCode, PowerFeedQRCode, PowerPanelQRCode]
+
+###################################
+# List button for printing QR codes
+
+class PrintQRCodesButton(PluginTemplateExtension):
+    models = (
+        'dcim.device',
+        'dcim.rack',
+        'dcim.cable',
+        'dcim.location',
+        'dcim.powerfeed',
+        'dcim.powerpanel',
+        'dcim.module',
+    )
+
+    def list_buttons(self):
+        request = self.context.get('request')
+        if request and request.resolver_match and request.resolver_match.view_name == 'plugins:netbox_qrcode:qrcode_print_device':
+            return ''
+        return self.render('netbox_qrcode/inc/print_qrcodes_button.html', extra_context={
+            'print_url': reverse('plugins:netbox_qrcode:qrcode_print_device')
+        })
+
+template_extensions = [
+    DeviceQRCode,
+    ModuleQRCode,
+    RackQRCode,
+    CableQRCode,
+    LocationQRCode,
+    Plugin_Netbox_Inventory,
+    PowerFeedQRCode,
+    PowerPanelQRCode,
+    PrintQRCodesButton,
+]
