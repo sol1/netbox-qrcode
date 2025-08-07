@@ -21,7 +21,7 @@ class QRCode(PluginTemplateExtension):
     # --------------------------------
     # Parameter:
     #   labelDesignNo: Which label design should be loaded.
-    def Create_SubPluginContent(self, labelDesignNo):
+    def Create_SubPluginContent(self, labelDesignNo, template_name='netbox_qrcode/qrcode3.html'):
         
         thisSelf = self
 
@@ -48,7 +48,7 @@ class QRCode(PluginTemplateExtension):
             if version.parse(settings.RELEASE.version).major >= 3:
 
                 render = self.render(
-                    'netbox_qrcode/qrcode3.html', extra_context={
+                    template_name, extra_context={
                                                                     'title': config.get('title'),
                                                                     'labelDesignNo': labelDesignNo,
                                                                     'qrCode': qrCode, 

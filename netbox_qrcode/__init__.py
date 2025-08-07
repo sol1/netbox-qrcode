@@ -66,8 +66,8 @@ class QRCodeConfig(PluginConfig):
         'label_edge_bottom': '0mm',    
         
         # Label QR code positioning
-        'label_width': '56mm',
-        'label_height': '32mm',
+        'label_width': '64mm',
+        'label_height': '33mm',
         'label_qr_text_distance': '1mm',
 
         # Module-dependent configuration

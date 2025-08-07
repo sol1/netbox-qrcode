@@ -1,5 +1,7 @@
 from django.contrib import messages
+from django.conf import settings
 from django.shortcuts import redirect, render
+from django.views.generic.base import TemplateView
 from django.urls import reverse
 
 from dcim.filtersets import (
@@ -40,6 +42,19 @@ from dcim.tables import (
 )
 from netbox.views import generic
 from utilities.htmx import htmx_partial
+
+from .template_content import (
+    QRCode,
+    DeviceQRCode,
+    RackQRCode,
+    CableQRCode,
+    LocationQRCode,
+    PowerFeedQRCode,
+    PowerPanelQRCode,
+    ModuleQRCode,
+)
+from .template_content_functions import config_for_modul, create_QRCode
+from .utilities import GridMaker, GridPosition, get_img_b64
 
 
 class QRCodePrintBaseView(generic.ObjectListView):
@@ -87,13 +102,14 @@ class QRCodePrintBaseView(generic.ObjectListView):
 
     def post(self, request):
         selected_pks = request.POST.getlist('pk')
-        objects = self.queryset.model.objects.filter(pk__in=selected_pks)
-        if not objects:
+        if not selected_pks:
             messages.error(request, "No objects selected for QR code printing.")
             return redirect(request.path)
-        # Implement QR code printing logic here
-        messages.success(request, f"Prepared {objects.count()} objects for QR code printing.")
-        return redirect(reverse(f'{self.queryset.model._meta.app_label}:{self.queryset.model._meta.model_name}_list'))
+        model_name = self.queryset.model._meta.model_name
+        preview_url = reverse('plugins:netbox_qrcode:qrcode_print_preview')
+        from urllib.parse import urlencode
+        query = urlencode({'model': model_name, 'pk': selected_pks}, doseq=True)
+        return redirect(f"{preview_url}?{query}")
 
 
 class DeviceQRCodePrintView(QRCodePrintBaseView):
@@ -150,3 +166,57 @@ class ModuleQRCodePrintView(QRCodePrintBaseView):
     filterset_form = ModuleFilterForm
     table = ModuleTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_module'
+
+
+class QRCodePrintPreviewView(TemplateView):
+    def get(self, request):
+        model_name = request.GET.get('model')
+        pk_list = request.GET.getlist('pk')
+        if not model_name or not pk_list:
+            messages.error(request, "No objects selected for QR code preview.")
+            return redirect('/')
+        model_map = {
+            'device': Device,
+            'rack': Rack,
+            'cable': Cable,
+            'location': Location,
+            'powerfeed': PowerFeed,
+            'powerpanel': PowerPanel,
+            'module': Module,
+        }
+        extension_map = {
+            'device': DeviceQRCode,
+            'rack': RackQRCode,
+            'cable': CableQRCode,
+            'location': LocationQRCode,
+            'powerfeed': PowerFeedQRCode,
+            'powerpanel': PowerPanelQRCode,
+            'module': ModuleQRCode,
+        }
+        model = model_map.get(model_name)
+        extension_class = extension_map.get(model_name)
+        plugin_config = settings.PLUGINS_CONFIG.get('netbox_qrcode', {})
+        if not model or not extension_class:
+            messages.error(request, "Invalid model for QR code preview.")
+            return redirect('/')
+        objects = list(model.objects.filter(pk__in=pk_list))
+        objects_ordered = [next(obj for obj in objects if str(obj.pk) == pk) for pk in pk_list if any(str(obj.pk) == pk for obj in objects)]
+        # Generate QR code HTML for each object (only QR code and label, no extra card or controls)
+        qr_html_list = []
+        for obj in objects_ordered:
+            qr_label_html = QRCode.Create_SubPluginContent(extension_class(context={'object': obj, 'config': plugin_config, 'request': request}), obj.id, template_name='netbox_qrcode/qrcode3_print.html')
+            qr_html_list.append(qr_label_html)
+        # Use GridMaker for grid positions
+        num_objects = len(objects_ordered)
+        rows = 3  # or set dynamically
+        grid = GridMaker(rows=rows, elements=num_objects)
+        # TODO: Use GridPosition to know spacing, may need to alter
+        # grid = GridPosition(rows=rows, elements=num_objects, element_height={{plugin_config.get('label_height', '33')}}, element_width={{plugin_config.get('label_width', '64')}}, grid_width=210, grid_height=297)  # Use label height from config
+        positions = [grid.getIndexByColumn(i+1) for i in range(num_objects)]
+        # Pass zipped objects, qr_html, and positions to template
+        return render(request, 'netbox_qrcode/print_preview.html', {
+            'objects': zip(objects_ordered, qr_html_list, positions),
+            'model': model,
+            'rows': int(grid.rows),
+            'columns': int(grid.columns),
+        })
