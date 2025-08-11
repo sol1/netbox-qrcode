@@ -209,14 +209,19 @@ class QRCodePrintPreviewView(TemplateView):
             qr_html_list.append(qr_label_html)
         # Use GridMaker for grid positions
         num_objects = len(objects_ordered)
-        # TODO: Multi page printing???
         grid = GridPosition(rows=plugin_config.get('page_rows'), columns=plugin_config.get('page_columns'), elements=num_objects, element_height=plugin_config.get('label_height'), element_width=plugin_config.get('label_width'), grid_width=plugin_config.get('page_width'), grid_height=plugin_config.get('page_height'))
-        if (grid.column_element_offset + plugin_config.get('label_width')) * plugin_config.get('page_columns') > plugin_config.get('page_width') \
-            or (grid.row_element_offset + plugin_config.get('label_height')) * plugin_config.get('page_rows') > plugin_config.get('page_height'):
+        if (grid.column_element_offset + grid.element_width) * grid.columns > plugin_config.get('page_width') \
+            or (grid.row_element_offset + grid.element_height) * grid.rows > plugin_config.get('page_height'):
             # TODO: The labels don't fit on the printed page at the current dimentions
             pass
             
-        positions = [grid.getIndexByColumn(i+1) for i in range(num_objects)]
+        # add blank spaces so start label isn't 1, don't know what html will want to make this work
+        blank_spaces = 2
+        offset = 1
+        if blank_spaces:
+            offset += blank_spaces
+        positions = [grid.getIndexByColumn(i+offset) for i in range(num_objects)]
+        # TODO: Multi page printing???
         # Pass zipped objects, qr_html, and positions to template
         return render(request, 'netbox_qrcode/print_preview.html', {
             'objects': zip(objects_ordered, qr_html_list, positions),
