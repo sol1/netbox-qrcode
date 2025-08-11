@@ -70,6 +70,14 @@ class QRCodeConfig(PluginConfig):
         'label_height': '33mm',
         'label_qr_text_distance': '1mm',
 
+        # Print multiple labels per page 
+        # page size
+        'page_width': '210mm',
+        'page_height': '297mm',
+        'page_columns': 3,
+        'page_rows': 10,
+        # TODO: Do we need seperate label sizes for multi page printing?
+
         # Module-dependent configuration
         'device': {
             'text_fields': ['name', 'serial']
