@@ -54,7 +54,8 @@ from .template_content import (
     ModuleQRCode,
 )
 from .template_content_functions import config_for_modul, create_QRCode
-from .utilities import GridMaker, GridPosition, get_img_b64
+from .utilities import get_img_b64
+from .grid import GridMaker, GridPosition
 
 
 class QRCodePrintBaseView(generic.ObjectListView):
