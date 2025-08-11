@@ -2,6 +2,15 @@
 {% load i18n %}
 
 {% block content %}
+<script type="text/javascript">
+
+    function printPageArea(areaID)
+    {
+        window.print();
+    }
+
+</script>
+
 <style>
 .a4-sheet {
     width: 210mm;
@@ -15,13 +24,33 @@
 }
 .qr-preview-item {
     display: flex;
-    flex-direction: column;
     margin: 1mm;
     color: black;
+    box-sizing: border-box;
+    width: calc(100% / 3 - margin);
+}
+@media print {
+    @page {
+        margin: 0;
+    }
+    body * {
+        visibility: hidden;
+    }
+    #preview, #preview * {
+        visibility: visible;
+    }
+    #preview {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+    }
 }
 </style>
+
 <h2>{% trans "QR Code Print Preview" %} ({{ model|meta:"verbose_name_plural"|capfirst }})</h2>
-<div class="a4-sheet">
+<div id="preview" class="a4-sheet">
     <div class="qr-preview-grid">
         {% for obj, qr_html, pos in objects %}
             <div class="qr-preview-item" data-row="{{ pos.0 }}" data-col="{{ pos.1 }}">
@@ -30,5 +59,8 @@
         {% endfor %}
     </div>
 </div>
+<button onclick="printPageArea()" ; class="btn btn-xs btn-primary">
+    <i class="mdi mdi-printer" aria-hidden="true"></i> Print
+</button>
 
 {% endblock %}

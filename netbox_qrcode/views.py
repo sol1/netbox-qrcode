@@ -53,9 +53,7 @@ from .template_content import (
     PowerPanelQRCode,
     ModuleQRCode,
 )
-from .template_content_functions import config_for_modul, create_QRCode
-from .utilities import get_img_b64
-from .grid import GridMaker, GridPosition
+from .grid import GridPosition
 
 
 class QRCodePrintBaseView(generic.ObjectListView):
@@ -168,6 +166,13 @@ class ModuleQRCodePrintView(QRCodePrintBaseView):
     table = ModuleTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_module'
 
+def extract_mm(value, default):
+    try:
+        if isinstance(value, str) and value.endswith('mm'):
+            return float(value.rstrip('mm'))
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 
 class QRCodePrintPreviewView(TemplateView):
     def get(self, request):
@@ -205,7 +210,10 @@ class QRCodePrintPreviewView(TemplateView):
         # Generate QR code HTML for each object (only QR code and label, no extra card or controls)
         qr_html_list = []
         for obj in objects_ordered:
-            qr_label_html = QRCode.Create_SubPluginContent(extension_class(context={'object': obj, 'config': plugin_config, 'request': request}), obj.id, template_name='netbox_qrcode/qrcode3_print.html')
+            qr_label_html = QRCode.Create_SubPluginContent(
+                extension_class(context={'object': obj, 'config': plugin_config, 'request': request}),
+                obj.id, template_name='netbox_qrcode/qrcode3_print.html'
+            )
             qr_html_list.append(qr_label_html)
         # Use GridMaker for grid positions
         num_objects = len(objects_ordered)
