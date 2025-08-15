@@ -15,7 +15,7 @@ class GridMaker:
         elements (int | float): Total number of elements in the grid.
     """
 
-    def __init__(self, rows=None, columns=None, elements=None):
+    def __init__(self, rows: int = None, columns: int = None, elements: int = None):
         """
         Initialize a GridMaker instance.
 
@@ -93,47 +93,36 @@ class GridPosition(GridMaker):
     This class can determine exact element coordinates within a grid,
     including offsets from grid edges and spacing between elements.
 
-    Attributes:
-        element_height (float): Height of each element (optional if offsets are provided).
-        element_width (float): Width of each element (optional if offsets are provided).
-        grid_width_start (float): X-coordinate where the grid starts.
-        grid_height_start (float): Y-coordinate where the grid starts.
-        grid_width (float): Total width of the grid.
-        grid_height (float): Total height of the grid.
+    Args:
+        rows (int | float, optional): Number of rows.
+        columns (int | float, optional): Number of columns.
+        elements (int | float, optional): Total number of elements.
+        element_height (float, optional): Height of each element.
+        element_width (float, optional): Width of each element.
+        element_height_offset (float, optional): Vertical spacing between elements.
+        element_width_offset (float, optional): Horizontal spacing between elements.
+        grid_start (tuple[float, float], optional): (x, y) coordinates where the grid starts.
+        grid_width (float, optional): Total width of the grid.
+        grid_height (float, optional): Total height of the grid.
+
+    Notes:
+        - If `element_height` is not provided but `element_height_offset` is,
+            the element height is derived from row height minus the offset.
+        - If `element_width` is not provided but `element_width_offset` is,
+            the element width is derived from column width minus the offset.
     """
 
     def __init__(self,
-                 rows=None,
-                 columns=None,
-                 elements=None,
-                 element_height=None,
-                 element_width=None,
-                 element_height_offset=None,
-                 element_width_offset=None,
+                 rows: int = None,
+                 columns: int = None,
+                 elements: int = None,
+                 element_height: float = None,
+                 element_width: float = None,
+                 element_height_offset: float = None,
+                 element_width_offset: float = None,
                  grid_start=(0, 0),
-                 grid_width=None,
-                 grid_height=None):
-        """
-        Initialize a GridPosition instance.
-
-        Args:
-            rows (int | float, optional): Number of rows.
-            columns (int | float, optional): Number of columns.
-            elements (int | float, optional): Total number of elements.
-            element_height (float, optional): Height of each element.
-            element_width (float, optional): Width of each element.
-            element_height_offset (float, optional): Vertical spacing between elements.
-            element_width_offset (float, optional): Horizontal spacing between elements.
-            grid_start (tuple[float, float], optional): (x, y) coordinates where the grid starts.
-            grid_width (float, optional): Total width of the grid.
-            grid_height (float, optional): Total height of the grid.
-
-        Notes:
-            - If `element_height` is not provided but `element_height_offset` is,
-              the element height is derived from row height minus the offset.
-            - If `element_width` is not provided but `element_width_offset` is,
-              the element width is derived from column width minus the offset.
-        """
+                 grid_width: float = None,
+                 grid_height: float = None):
         self.element_height = element_height
         self.element_width = element_width
         self.grid_width_start = float(grid_start[0])

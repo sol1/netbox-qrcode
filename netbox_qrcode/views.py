@@ -54,6 +54,7 @@ from .template_content import (
     ModuleQRCode,
 )
 from .grid import GridPosition
+from .utilities import to_int, to_float
 
 
 class QRCodePrintBaseView(generic.ObjectListView):
@@ -217,11 +218,53 @@ class QRCodePrintPreviewView(TemplateView):
             qr_html_list.append(qr_label_html)
         # Use GridMaker for grid positions
         num_objects = len(objects_ordered)
-        grid = GridPosition(rows=plugin_config.get('page_rows'), columns=plugin_config.get('page_columns'), elements=num_objects, element_height=plugin_config.get('label_height'), element_width=plugin_config.get('label_width'), grid_width=plugin_config.get('page_width'), grid_height=plugin_config.get('page_height'))
-        if (grid.column_element_offset + grid.element_width) * grid.columns > plugin_config.get('page_width') \
-            or (grid.row_element_offset + grid.element_height) * grid.rows > plugin_config.get('page_height'):
-            # TODO: The labels don't fit on the printed page at the current dimentions
-            pass
+        grid_values = {}
+        _scales = set()
+
+        # Define field groups
+        int_fields = ['page_rows', 'page_columns']
+        float_fields = ['label_height', 'label_width', 'page_width', 'page_height']
+
+        # Process int fields
+        for var in int_fields:
+            grid_values[var], scale = to_int(plugin_config.get(var))
+            if scale is not None:
+                _scales.add(scale)
+
+        # Process float fields
+        for var in float_fields:
+            grid_values[var], scale = to_float(plugin_config.get(var))
+            if scale is not None:
+                _scales.add(scale)
+
+        # Check for mixed scales
+        if len(_scales) > 1:
+            raise ValueError(f"Mixed scale exception: {_scales}")
+
+        grid = GridPosition(
+            rows=grid_values['page_rows'],
+            columns=grid_values['page_columns'],
+            elements=num_objects,
+            element_height=grid_values['label_height'],
+            element_width=grid_values['label_width'],
+            grid_width=grid_values['page_width'],
+            grid_height=grid_values['page_height']
+        )
+
+        # TODO: We shouldn't ever get here as this should be checked when the config is loaded
+        if (grid.column_element_offset + grid.element_width) * grid.columns > grid_values['page_width'] \
+            or (grid.row_element_offset + grid.element_height) * grid.rows > grid_values['page_height'] \
+            or grid.column_element_offset < 0 \
+            or grid.row_element_offset < 0:
+            raise ValueError(
+                f"Labels don't fit on the page: "
+                f"grid width created = {(grid.column_element_offset + grid.element_width) * grid.columns}, "
+                f"page width = {grid_values['page_width']}, "
+                f"grid width offset = {grid.column_element_offset}; "
+                f"grid height created = {(grid.row_element_offset + grid.element_height) * grid.rows}, "
+                f"page height = {grid_values['page_height']}, "
+                f"grid height offset = {grid.row_element_offset}; "
+            )
             
         # add blank spaces so start label isn't 1, don't know what html will want to make this work
         blank_spaces = 2
