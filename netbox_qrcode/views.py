@@ -219,27 +219,36 @@ class QRCodePrintPreviewView(TemplateView):
         # Use GridMaker for grid positions
         num_objects = len(objects_ordered)
         grid_values = {}
-        _scales = set()
+        scales = set()
 
         # Define field groups
         int_fields = ['page_rows', 'page_columns']
-        float_fields = ['label_height', 'label_width', 'page_width', 'page_height']
+        float_fields = [
+            'label_height', 
+            'label_width', 
+            'page_width', 
+            'page_height', 
+            'page_top_margin',
+            'page_bottom_margin',
+            'page_left_margin',
+            'page_right_margin',
+        ]
 
         # Process int fields
         for var in int_fields:
             grid_values[var], scale = to_int(plugin_config.get(var))
             if scale is not None:
-                _scales.add(scale)
+                scales.add(scale)
 
         # Process float fields
         for var in float_fields:
             grid_values[var], scale = to_float(plugin_config.get(var))
             if scale is not None:
-                _scales.add(scale)
+                scales.add(scale)
 
         # Check for mixed scales
-        if len(_scales) > 1:
-            raise ValueError(f"Mixed scale exception: {_scales}")
+        if len(scales) > 1:
+            raise ValueError(f"Mixed scale exception: {scales}")
 
         grid = GridPosition(
             rows=grid_values['page_rows'],
@@ -247,8 +256,8 @@ class QRCodePrintPreviewView(TemplateView):
             elements=num_objects,
             element_height=grid_values['label_height'],
             element_width=grid_values['label_width'],
-            grid_width=grid_values['page_width'],
-            grid_height=grid_values['page_height']
+            grid_width=grid_values['page_width'] - (grid_values['page_left_margin'] + grid_values['page_right_margin']),
+            grid_height=grid_values['page_height'] - (grid_values['page_top_margin'] + grid_values['page_bottom_margin'])
         )
 
         # TODO: We shouldn't ever get here as this should be checked when the config is loaded
@@ -268,15 +277,29 @@ class QRCodePrintPreviewView(TemplateView):
             
         # add blank spaces so start label isn't 1, don't know what html will want to make this work
         blank_spaces = 2
-        offset = 1
-        if blank_spaces:
-            offset += blank_spaces
-        positions = [grid.getIndexByColumn(i+offset) for i in range(num_objects)]
+        # Create blank placeholders
+        blank_objs = [None] * blank_spaces
+        blank_qr = [''] * blank_spaces
+
+        # Prepend blanks
+        objects_ordered = blank_objs + objects_ordered
+        qr_html_list = blank_qr + qr_html_list
+
+        positions = [grid.getIndexByRow(i+1) for i in range(num_objects + blank_spaces)]
+        print(positions)
         # TODO: Multi page printing???
         # Pass zipped objects, qr_html, and positions to template
         return render(request, 'netbox_qrcode/print_preview.html', {
-            'objects': zip(objects_ordered, qr_html_list, positions),
-            'model': model,
-            'rows': int(grid.rows),
-            'columns': int(grid.columns),
+            'objects': zip(objects_ordered, qr_html_list, positions),            
+            'grid': grid,
+            'page_width': plugin_config.get('page_width'),
+            'page_height': plugin_config.get('page_height'),
+            'page_top_margin': plugin_config.get('page_top_margin'),
+            'page_bottom_margin': plugin_config.get('page_bottom_margin'),
+            'page_left_margin': plugin_config.get('page_left_margin'),
+            'page_right_margin': plugin_config.get('page_right_margin'),
+            'row_range': range(1, grid.rows + 1),
+            'col_range': range(1, grid.columns + 1),
+            'scale': next(iter(scales)),
+            'model': model,  # TODO: what is model?
         })

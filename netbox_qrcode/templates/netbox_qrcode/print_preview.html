@@ -13,21 +13,31 @@
 
 <style>
 .a4-sheet {
-    width: 210mm;
-    height: 297mm;
+    width: {{ page_width }};
+    height: {{ page_height }};
     background: white;
     box-sizing: border-box;
 }
 .qr-preview-grid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat({{ grid.columns }}, auto);
+    grid-auto-rows: auto;
+    row-gap: {{grid.row_element_offset}}{{scale}};    /* vertical spacing */
+    column-gap: {{grid.column_element_offset}}{{scale}};  /* horizontal spacing */
+    padding-top: {{ page_top_margin }};
+    padding-right: {{ page_right_margin }};
+    padding-bottom: {{ page_bottom_margin }};
+    padding-left: {{ page_left_margin }};
 }
+
 .qr-preview-item {
-    display: flex;
-    margin: 1mm;
-    color: black;
-    box-sizing: border-box;
-    width: calc(100% / 3 - margin);
+    /* optional styling for each QR cell */
+    border: 1px solid #ccc;
+    padding: 5px;
+}
+.a4-sheet .qr-preview-item {
+  border: none;
+  padding: 0;
 }
 @media print {
     @page {

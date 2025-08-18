@@ -74,6 +74,10 @@ class QRCodeConfig(PluginConfig):
         # page size
         'page_width': '210mm',
         'page_height': '297mm',
+        'page_top_margin': '14mm',
+        'page_bottom_margin': '14mm',
+        'page_left_margin': '6mm',
+        'page_right_margin': '6mm',
         'page_columns': 3,
         'page_rows': 9,
         # TODO: Do we need seperate label sizes for multi page printing?
