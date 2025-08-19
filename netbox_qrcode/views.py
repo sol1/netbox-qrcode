@@ -56,6 +56,7 @@ from .template_content import (
 from .grid import GridPosition
 from .utilities import to_int, to_float
 
+import math
 
 class QRCodePrintBaseView(generic.ObjectListView):
     bulk_url_name = None
@@ -288,10 +289,13 @@ class QRCodePrintPreviewView(TemplateView):
         positions = [grid.getIndexByRow(i+1) for i in range(num_objects + blank_spaces)]
         print(positions)
         # TODO: Multi page printing???
+        per_page = grid.rows * grid.columns
+        print(per_page)
         # Pass zipped objects, qr_html, and positions to template
         return render(request, 'netbox_qrcode/print_preview.html', {
             'objects': zip(objects_ordered, qr_html_list, positions),            
             'grid': grid,
+            'per_page': per_page,
             'page_width': plugin_config.get('page_width'),
             'page_height': plugin_config.get('page_height'),
             'page_top_margin': plugin_config.get('page_top_margin'),
