@@ -6,9 +6,80 @@
 {% block buttons %}
 {% endblock %}
 
-{% block bulk_buttons %}
-    <a href="{{ return_url }}" class="btn btn-outline-secondary btn-float">{% trans "Cancel" %}</a>
-    <button type="submit" class="btn btn-primary">
-        Print QR Codes
-    </button>
+
+
+{% block tabs %}
+  <ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <a class="nav-link active" id="object-list-tab" data-bs-toggle="tab" data-bs-target="#object-list" type="button" role="tab" aria-controls="edit-form" aria-selected="true">
+        {% trans "Results" %}
+        <span class="badge text-bg-secondary total-object-count">{% if table.page.paginator.count %}{{ table.page.paginator.count }}{% else %}{{ total_count|default:"0" }}{% endif %}</span>
+      </a>
+    </li>
+    {% if filter_form %}
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="filters-form-tab" data-bs-toggle="tab" data-bs-target="#filters-form" type="button" role="tab" aria-controls="object-list" aria-selected="false">
+          {% trans "Filters" %}
+          {% if filter_form %}{% badge filter_form.changed_data|length bg_color="primary" %}{% endif %}
+        </button>
+      </li>
+    {% endif %}
+  <li class="nav-item" role="presentation">
+    <a class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Print Settings</a>
+  </li>
+  </ul>
+{% endblock %}
+
+{% block content %}
+  {{ block.super }}
+  <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group col-md-3">
+          <label for="page_width">Page Width</label>
+          <input type="text" class="form-control" id="page_width" name="page_width" value="{{ page_width|default:'210mm' }}">
+        </div>
+        <div class="form-group col-md-3">
+          <label for="page_height">Page Height</label>
+          <input type="text" class="form-control" id="page_height" name="page_height" value="{{ page_height|default:'297mm' }}">
+        </div>
+        <div class="form-group col-md-3">
+          <label for="page_top_margin">Top Margin</label>
+          <input type="text" class="form-control" id="page_top_margin" name="page_top_margin" value="{{ page_top_margin|default:'14mm' }}">
+        </div>
+        <div class="form-group col-md-3">
+          <label for="page_bottom_margin">Bottom Margin</label>
+          <input type="text" class="form-control" id="page_bottom_margin" name="page_bottom_margin" value="{{ page_bottom_margin|default:'14mm' }}">
+        </div>
+        <div class="form-group col-md-3">
+          <label for="page_left_margin">Left Margin</label>
+          <input type="text" class="form-control" id="page_left_margin" name="page_left_margin" value="{{ page_left_margin|default:'6mm' }}">
+        </div>
+        <div class="form-group col-md-3">
+          <label for="page_right_margin">Right Margin</label>
+          <input type="text" class="form-control" id="page_right_margin" name="page_right_margin" value="{{ page_right_margin|default:'6mm' }}">
+        </div>
+        <div class="form-group col-md-3">
+          <label for="page_columns">Columns</label>
+          <input type="number" class="form-control" id="page_columns" name="page_columns" value="{{ page_columns|default:3 }}">
+        </div>
+        <div class="form-group col-md-3">
+          <label for="page_rows">Rows</label>
+          <input type="number" class="form-control" id="page_rows" name="page_rows" value="{{ page_rows|default:9 }}">
+        </div>
+        <div class="form-group col-md-3">
+          <label for="start_position">Start Position</label>
+          <input type="number" class="form-control" id="start_position" name="start_position" value="{{ start_position|default:1 }}">
+        </div>
+      </div>
+      {% block bulk_buttons %}
+        <br>
+        <a href="{{ return_url }}" class="btn btn-outline-secondary btn-float">{% trans "Cancel" %}</a>
+        <button type="submit" class="btn btn-primary">
+          QR Code Print Preview
+        </button>
+      {% endblock %}
+    </form>
+  </div>
 {% endblock %}

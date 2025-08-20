@@ -214,6 +214,7 @@ class PrintQRCodesButton(PluginTemplateExtension):
         print_url_name = model_to_url.get(model_label)
         if not print_url_name:
             return ''
+    # TODO: Refactor this into a menu item
         return self.render('netbox_qrcode/inc/print_qrcodes_button.html', extra_context={
             'print_url': reverse(print_url_name)
         })

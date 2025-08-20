@@ -55,6 +55,7 @@ from .template_content import (
 )
 from .grid import GridPosition
 from .utilities import to_int, to_float
+from .form import PrintSettingsForm
 
 import math
 
@@ -119,6 +120,7 @@ class DeviceQRCodePrintView(QRCodePrintBaseView):
     filterset_form = DeviceFilterForm
     table = DeviceTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_device'
+    print_settings_form = PrintSettingsForm
 
 
 class RackQRCodePrintView(QRCodePrintBaseView):
@@ -127,6 +129,7 @@ class RackQRCodePrintView(QRCodePrintBaseView):
     filterset_form = RackFilterForm
     table = RackTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_rack'
+    print_settings_form = PrintSettingsForm
 
 
 class CableQRCodePrintView(QRCodePrintBaseView):
@@ -135,6 +138,7 @@ class CableQRCodePrintView(QRCodePrintBaseView):
     filterset_form = CableFilterForm
     table = CableTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_cable'
+    print_settings_form = PrintSettingsForm
 
 
 class LocationQRCodePrintView(QRCodePrintBaseView):
@@ -143,6 +147,7 @@ class LocationQRCodePrintView(QRCodePrintBaseView):
     filterset_form = LocationFilterForm
     table = LocationTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_location'
+    print_settings_form = PrintSettingsForm
 
 
 class PowerFeedQRCodePrintView(QRCodePrintBaseView):
@@ -151,6 +156,7 @@ class PowerFeedQRCodePrintView(QRCodePrintBaseView):
     filterset_form = PowerFeedFilterForm
     table = PowerFeedTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_powerfeed'
+    print_settings_form = PrintSettingsForm
 
 
 class PowerPanelQRCodePrintView(QRCodePrintBaseView):
@@ -159,6 +165,7 @@ class PowerPanelQRCodePrintView(QRCodePrintBaseView):
     filterset_form = PowerPanelFilterForm
     table = PowerPanelTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_powerpanel'
+    print_settings_form = PrintSettingsForm
 
 
 class ModuleQRCodePrintView(QRCodePrintBaseView):
@@ -167,6 +174,7 @@ class ModuleQRCodePrintView(QRCodePrintBaseView):
     filterset_form = ModuleFilterForm
     table = ModuleTable
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_module'
+    print_settings_form = PrintSettingsForm
 
 def extract_mm(value, default):
     try:
