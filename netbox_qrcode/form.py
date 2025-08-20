@@ -31,28 +31,28 @@ class PrintSettingsForm(forms.Form):
         label="Page Width",
         initial=plugin_config.get('page_width', ''),
         required=False,
-        type=str
+        type=str,
         help_text="Width of the page for printing QR codes."
     )
     page_height = forms.CharField(
         label="Page Height",
         initial=plugin_config.get('page_height', ''),
         required=False,
-        type=str
+        type=str,
         help_text="Height of the page for printing QR codes."
     )
     page_top_margin = forms.CharField(
         label="Top Margin",
         initial=plugin_config.get('page_top_margin', ''),
         required=False,
-        type=str
+        type=str,
         help_text="Top margin of the page for printing QR codes."
     )
     page_bottom_margin = forms.CharField(
         label="Bottom Margin",
         initial=plugin_config.get('page_bottom_margin', ''),
         required=False,
-        type=str
+        type=str,
         help_text="Bottom margin of the page for printing QR codes."
     )
     page_left_margin = forms.CharField(
