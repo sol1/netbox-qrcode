@@ -188,6 +188,7 @@ class QRCodePrintPreviewView(TemplateView):
     def get(self, request):
         model_name = request.GET.get('model')
         pk_list = request.GET.getlist('pk')
+        blank_spaces = int(request.GET.get('blank_spaces', 0))
         if not model_name or not pk_list:
             messages.error(request, "No objects selected for QR code preview.")
             return redirect('/')
@@ -245,13 +246,21 @@ class QRCodePrintPreviewView(TemplateView):
 
         # Process int fields
         for var in int_fields:
-            grid_values[var], scale = to_int(plugin_config.get(var))
+            if var in request.GET:
+                varVal = request.GET[var]
+            else:
+                varVal = plugin_config.get(var)
+            grid_values[var], scale = to_int(varVal)
             if scale is not None:
                 scales.add(scale)
 
         # Process float fields
         for var in float_fields:
-            grid_values[var], scale = to_float(plugin_config.get(var))
+            if var in request.GET:
+                varVal = request.GET[var]
+            else:
+                varVal = plugin_config.get(var)
+            grid_values[var], scale = to_float(varVal)
             if scale is not None:
                 scales.add(scale)
 
@@ -285,7 +294,6 @@ class QRCodePrintPreviewView(TemplateView):
             )
             
         # add blank spaces so start label isn't 1, don't know what html will want to make this work
-        blank_spaces = 2
         # Create blank placeholders
         blank_objs = [None] * blank_spaces
         blank_qr = [''] * blank_spaces
@@ -295,12 +303,10 @@ class QRCodePrintPreviewView(TemplateView):
         qr_html_list = blank_qr + qr_html_list
 
         positions = [grid.getIndexByRow(i+1) for i in range(num_objects + blank_spaces)]
-        print(positions)
         # TODO: Multi page printing???
         per_page = grid.rows * grid.columns
-        print(per_page)
         # Pass zipped objects, qr_html, and positions to template
-        return render(request, 'netbox_qrcode/print_preview.html', {
+        context = {
             'objects': zip(objects_ordered, qr_html_list, positions),            
             'grid': grid,
             'per_page': per_page,
@@ -310,8 +316,15 @@ class QRCodePrintPreviewView(TemplateView):
             'page_bottom_margin': plugin_config.get('page_bottom_margin'),
             'page_left_margin': plugin_config.get('page_left_margin'),
             'page_right_margin': plugin_config.get('page_right_margin'),
+            'label_height': plugin_config.get('label_height'),
             'row_range': range(1, grid.rows + 1),
             'col_range': range(1, grid.columns + 1),
             'scale': next(iter(scales)),
             'model': model,  # TODO: what is model?
-        })
+            'blank_spaces': blank_spaces,
+        }
+
+        if request.headers.get('HX-Request'):
+            return render(request, 'netbox_qrcode/inc/preview_grid.html', context)
+        
+        return render(request, 'netbox_qrcode/print_preview.html', context)

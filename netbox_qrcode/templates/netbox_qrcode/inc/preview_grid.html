@@ -1,0 +1,15 @@
+{% for obj, qr_html, pos in objects %}
+  {% if forloop.first or forloop.counter0|divisibleby:per_page %}
+    <div class="a4-sheet">
+      <div class="qr-preview-grid">
+  {% endif %}
+
+        <div class="qr-preview-item" data-row="{{ pos.0 }}" data-col="{{ pos.1 }}">
+          <div>{{ qr_html|safe }}</div>
+        </div>
+
+  {% if forloop.counter|divisibleby:per_page or forloop.last %}
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}

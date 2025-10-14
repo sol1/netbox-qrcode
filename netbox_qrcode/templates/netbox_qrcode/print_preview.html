@@ -3,82 +3,164 @@
 
 {% block content %}
 <script type="text/javascript">
+  function printPageArea() {
+    window.print();
+  }
 
-    function printPageArea(areaID)
-    {
-        window.print();
+  function updateUrlParam(name, value) {
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    params.set(name, value);
+    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}`);
+    window.location.reload()
+  }
+
+  // Attach listener once the page is ready
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("settingsForm");
+    if (form) {
+      form.addEventListener("input", (event) => {
+        const target = event.target;
+        if (target.name && target.value !== undefined) {
+          updateUrlParam(target.name, target.value);
+        }
+      });
     }
-
+  });
 </script>
 
 <style>
+.print-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* left:right width ratio */
+  gap: 20px;
+  align-items: start;
+}
 .a4-sheet {
-    width: {{ page_width }};
-    height: {{ page_height }};
-    background: white;
-    box-sizing: border-box;
+  width: {{ page_width }};
+  height: {{ page_height }};
+  background: white;
+  box-sizing: border-box;
 }
 .qr-preview-grid {
-    display: grid;
-    grid-template-columns: repeat({{ grid.columns }}, auto);
-    grid-auto-rows: auto;
-    row-gap: {{grid.row_element_offset}}{{scale}};    /* vertical spacing */
-    column-gap: {{grid.column_element_offset}}{{scale}};  /* horizontal spacing */
-    padding-top: {{ page_top_margin }};
-    padding-right: {{ page_right_margin }};
-    padding-bottom: {{ page_bottom_margin }};
-    padding-left: {{ page_left_margin }};
+  display: grid;
+  grid-template-columns: repeat({{ grid.columns }}, auto);
+  grid-auto-rows: auto;
+  row-gap: {{grid.row_element_offset}}{{scale}};    /* vertical spacing */
+  column-gap: {{grid.column_element_offset}}{{scale}};  /* horizontal spacing */
+  padding-top: {{ page_top_margin }};
+  padding-right: {{ page_right_margin }};
+  padding-bottom: {{ page_bottom_margin }};
+  padding-left: {{ page_left_margin }};
 }
 
 .qr-preview-item {
-    /* optional styling for each QR cell */
-    border: 1px solid #ccc;
-    padding: 5px;
+  /* optional styling for each QR cell */
+  border: 1px solid #ccc;
+  padding: 5px;
+  height: {{label_height}};
 }
 .a4-sheet .qr-preview-item {
   border: none;
   padding: 0;
 }
+.controls {
+  border-left: 1px solid #ddd;
+  padding-left: 20px;
+}
+.controls h3 {
+  margin-top: 0;
+}
+.controls .btn {
+  margin-bottom: 10px;
+}
+
 @media print {
-    @page {
-        margin: 0;
-    }
-    body * {
-        visibility: hidden;
-    }
-    #preview, #preview * {
-        visibility: visible;
-    }
-    #preview {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: auto;
-    }
+  @page {
+    margin: 0;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #preview, #preview * {
+    visibility: visible;
+  }
+  #preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+  }
 }
 </style>
 
 <h2>{% trans "QR Code Print Preview" %} ({{ model|meta:"verbose_name_plural"|capfirst }})</h2>
+
+<div class="print-layout">
+  <div id="preview-container">
     <div id="preview">
-  {% for obj, qr_html, pos in objects %}
-    {% if forloop.first or forloop.counter0|divisibleby:per_page %}
-      <div class="a4-sheet">
-        <div class="qr-preview-grid">
-    {% endif %}
-
-          <div class="qr-preview-item" data-row="{{ pos.0 }}" data-col="{{ pos.1 }}">
-              <div>{{ qr_html|safe }}</div>
-          </div>
-
-    {% if forloop.counter|divisibleby:per_page or forloop.last %}
-        </div>
-      </div>
-    {% endif %}
-  {% endfor %}
+      {% include 'netbox_qrcode/inc/preview_grid.html' %}
     </div>
-<button onclick="printPageArea()" ; class="btn btn-xs btn-primary">
-    <i class="mdi mdi-printer" aria-hidden="true"></i> Print
-</button>
+  </div>
+  
+  <div class="controls">
+    <h3>{% trans "Controls" %}</h3>
+    <p class="text-muted">
+      {% trans "Adjust print settings and layout before printing." %}
+    </p>
+
+    <form id="settingsForm" hx-get="{% url 'plugins:netbox_qrcode:qrcode_print_preview' %}" hx-target="#preview-container" hx-swap="innerHTML" hx-push-url="false" style="margin-bottom: 1em;">
+      <input type="hidden" name="model" value="{{ model|meta:'model_name' }}">
+      {% for obj, qr, pos in objects %}
+        {% if obj %}
+          <input type="hidden" name="pk" value="{{ obj.pk }}">
+        {% endif %}
+      {% endfor %}
+      <label for="blankInput">{% trans "Blank Labels Before Start" %}</label>
+      <input type="number" id="blankInput" name="blank_spaces" min="0" max="50" value="{{ blank_spaces|default:0 }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <label for="pageRowsInput">{% trans "Page Rows" %}</label>
+      <input type="number" id="pageRowsInput" name="page_rows" value="{{ page_rows }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <label for="pageColumnsInput">{% trans "Page Columns" %}</label>
+      <input type="number" id="pageColumnsInput" name="page_columns" value="{{ page_columns }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <hr>
+
+      <!-- Float fields -->
+      <label for="labelHeightInput">{% trans "Label Height" %}</label>
+      <input type="text" id="labelHeightInput" name="label_height" value="{{ label_height }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <label for="labelWidthInput">{% trans "Label Width" %}</label>
+      <input type="text" id="labelWidthInput" name="label_width" value="{{ label_width }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <label for="pageWidthInput">{% trans "Page Width" %}</label>
+      <input type="text" id="pageWidthInput" name="page_width" value="{{ page_width }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <label for="pageHeightInput">{% trans "Page Height" %}</label>
+      <input type="text" id="pageHeightInput" name="page_height" value="{{ page_height }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <label for="pageTopMarginInput">{% trans "Top Margin" %}</label>
+      <input type="text" id="pageTopMarginInput" name="page_top_margin" value="{{ page_top_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <label for="pageBottomMarginInput">{% trans "Bottom Margin" %}</label>
+      <input type="text" id="pageBottomMarginInput" name="page_bottom_margin" value="{{ page_bottom_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <label for="pageLeftMarginInput">{% trans "Left Margin" %}</label>
+      <input type="text" id="pageLeftMarginInput" name="page_left_margin" value="{{ page_left_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+
+      <label for="pageRightMarginInput">{% trans "Right Margin" %}</label>
+      <input type="text" id="pageRightMarginInput" name="page_right_margin" value="{{ page_right_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div style-="margin-top: 10px;">
+        <button type="submit" class="btn btn-green btn-sm">
+          <i class="mdi mdi-refresh" aria-hidden="true"></i> {% trans "Update Preview" %}
+        </button>
+        <button type="button" onclick="printPageArea()" class="btn btn-yellow btn-sm">
+          <i class="mdi mdi-printer" aria-hidden="true"></i> {% trans "Print" %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 
 {% endblock %}
