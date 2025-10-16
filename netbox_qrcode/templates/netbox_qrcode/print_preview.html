@@ -41,7 +41,8 @@
   height: {{ page_height }};
   background: white;
   box-sizing: border-box;
-  /* outline: 2px solid #007bff; */ /* Uncomment to add outline for debuging */
+  /* Uncomment to add outline to pages for debuging */
+  /* outline: 2px solid #007bff;  */
 }
 .qr-preview-grid {
   display: grid;
@@ -165,7 +166,7 @@
         {% endif %}
       {% endfor %}
       <div class="print-control print-control-int">
-        <label for="blankInput">{% trans "Blank Labels Before Start" %}</label>
+        <label for="blankInput">{% trans "Blank Labels at Start" %}</label>
         <input type="number" id="blankInput" name="blank_spaces" min="0" max="50" value="{{ blank_spaces|default:0 }}" class="form-control" />
       </div>
 

@@ -184,14 +184,89 @@ def extract_mm(value, default):
     except (TypeError, ValueError):
         return default
 
+class QRPrintConfigValue:
+    """Represents a single print config field with layered sources (config, request)."""
+    def __init__(self, name: str, field_type: type, config: str | None = None, request: str | None = None):
+        self.name = name
+        self.type = field_type
+        self.config = config
+        self.request = request
+        self.grid = None
+        self.scale = None
+
+        self.__set_grid()
+
+    @property
+    def value(self):
+        """Return the best (highest priority) value."""
+        if self.request is not None:
+            return self.request
+        else:
+            return self.config
+
+    def __set_grid(self):
+        if self.value is not None:
+            if self.type == int:
+                self.grid, self.scale = to_int(self.value)
+            elif self.type == float:
+                self.grid, self.scale = to_float(self.value)
+
+    def __repr__(self):
+        """Debug-friendly representation."""
+        return f"<QRConfigValue {self.name}={self.value!r}>"
+
+class QRPrintConfig:
+    """Print configuration where only grid values are type-cast."""
+    field_types: dict[str, type] = {
+        'page_rows': int,
+        'page_columns': int,
+        'label_height': float,
+        'label_width': float,
+        'page_width': float,
+        'page_height': float,
+        'page_top_margin': float,
+        'page_bottom_margin': float,
+        'page_left_margin': float,
+        'page_right_margin': float,
+    }    
+
+    def __init__(self, plugin_config: dict, request_get: dict):
+        self._plugin_config = plugin_config
+        self._request = request_get
+
+        for name, ftype in self.field_types.items():
+            plugin_value = plugin_config.get(name, None)
+            request_value = self._request.get(name, None)
+            config_value = QRPrintConfigValue(name, ftype, config=plugin_value, request=request_value)
+            setattr(self, name, config_value)
+
+    @property
+    def scales(self):
+        """Return a set of all detected scales in the config."""
+        scales = set()
+        for name in self.field_types:
+            value: QRPrintConfigValue = getattr(self, name)
+            if value.scale is not None:
+                scales.add(value.scale)
+        return scales
+
+    def as_dict(self):
+        return {name: getattr(self, name).value for name in self.field_types}
+
 class QRCodePrintPreviewView(TemplateView):
     def get(self, request):
+        # Get form config
         model_name = request.GET.get('model')
         pk_list = request.GET.getlist('pk')
         blank_spaces = int(request.GET.get('blank_spaces', 0))
         if not model_name or not pk_list:
             messages.error(request, "No objects selected for QR code preview.")
             return redirect('/')
+
+        # Get plugin/form config
+        plugin_config = settings.PLUGINS_CONFIG.get('netbox_qrcode', {})
+        print_config = QRPrintConfig(plugin_config, request.GET)
+
         model_map = {
             'device': Device,
             'rack': Rack,
@@ -212,7 +287,6 @@ class QRCodePrintPreviewView(TemplateView):
         }
         model = model_map.get(model_name)
         extension_class = extension_map.get(model_name)
-        plugin_config = settings.PLUGINS_CONFIG.get('netbox_qrcode', {})
         if not model or not extension_class:
             messages.error(request, "Invalid model for QR code preview.")
             return redirect('/')
@@ -223,73 +297,42 @@ class QRCodePrintPreviewView(TemplateView):
         for obj in objects_ordered:
             qr_label_html = QRCode.Create_SubPluginContent(
                 extension_class(context={'object': obj, 'config': plugin_config, 'request': request}),
-                obj.id, template_name='netbox_qrcode/qrcode3_print.html'
+                labelDesignNo=obj.id, 
+                template_name='netbox_qrcode/qrcode3_print.html',
+                label_width=print_config.label_width.value,
+                label_height=print_config.label_height.value,
             )
             qr_html_list.append(qr_label_html)
         # Use GridMaker for grid positions
         num_objects = len(objects_ordered)
-        grid_values = {}
-        scales = set()
 
-        # Define field groups
-        int_fields = ['page_rows', 'page_columns']
-        float_fields = [
-            'label_height', 
-            'label_width', 
-            'page_width', 
-            'page_height', 
-            'page_top_margin',
-            'page_bottom_margin',
-            'page_left_margin',
-            'page_right_margin',
-        ]
-
-        # Process int fields
-        for var in int_fields:
-            if var in request.GET:
-                varVal = request.GET[var]
-            else:
-                varVal = plugin_config.get(var)
-            grid_values[var], scale = to_int(varVal)
-            if scale is not None:
-                scales.add(scale)
-
-        # Process float fields
-        for var in float_fields:
-            if var in request.GET:
-                varVal = request.GET[var]
-            else:
-                varVal = plugin_config.get(var)
-            grid_values[var], scale = to_float(varVal)
-            if scale is not None:
-                scales.add(scale)
 
         # Check for mixed scales
-        if len(scales) > 1:
-            raise ValueError(f"Mixed scale exception: {scales}")
+        if len(print_config.scales) > 1:
+            raise ValueError(f"Mixed scale exception: {print_config.scales}")
 
         grid = GridPosition(
-            rows=grid_values['page_rows'],
-            columns=grid_values['page_columns'],
+            rows=print_config.page_rows.grid,
+            columns=print_config.page_columns.grid,
             elements=num_objects,
-            element_height=grid_values['label_height'],
-            element_width=grid_values['label_width'],
-            grid_width=grid_values['page_width'] - (grid_values['page_left_margin'] + grid_values['page_right_margin']),
-            grid_height=grid_values['page_height'] - (grid_values['page_top_margin'] + grid_values['page_bottom_margin'])
+            element_height=print_config.label_height.grid,
+            element_width=print_config.label_width.grid,
+            grid_width=print_config.page_width.grid - (print_config.page_left_margin.grid + print_config.page_right_margin.grid),
+            grid_height=print_config.page_height.grid - (print_config.page_top_margin.grid + print_config.page_bottom_margin.grid)
         )
 
         # TODO: We shouldn't ever get here as this should be checked when the config is loaded
-        if (grid.column_element_offset + grid.element_width) * grid.columns > grid_values['page_width'] \
-            or (grid.row_element_offset + grid.element_height) * grid.rows > grid_values['page_height'] \
+        if (grid.column_element_offset + grid.element_width) * grid.columns > print_config.page_width.grid \
+            or (grid.row_element_offset + grid.element_height) * grid.rows > print_config.page_height.grid \
             or grid.column_element_offset < 0 \
             or grid.row_element_offset < 0:
             raise ValueError(
                 f"Labels don't fit on the page: "
                 f"grid width created = {(grid.column_element_offset + grid.element_width) * grid.columns}, "
-                f"page width = {grid_values['page_width']}, "
+                f"page width = {print_config.page_width.grid}, "
                 f"grid width offset = {grid.column_element_offset}; "
                 f"grid height created = {(grid.row_element_offset + grid.element_height) * grid.rows}, "
-                f"page height = {grid_values['page_height']}, "
+                f"page height = {print_config.page_height.grid}, "
                 f"grid height offset = {grid.row_element_offset}; "
             )
             
@@ -310,19 +353,19 @@ class QRCodePrintPreviewView(TemplateView):
             'objects': zip(objects_ordered, qr_html_list, positions),            
             'grid': grid,
             'per_page': per_page,
-            'page_rows': plugin_config.get('page_rows'),
-            'page_columns': plugin_config.get('page_columns'),
-            'page_width': plugin_config.get('page_width'),
-            'page_height': plugin_config.get('page_height'),
-            'page_top_margin': plugin_config.get('page_top_margin'),
-            'page_bottom_margin': plugin_config.get('page_bottom_margin'),
-            'page_left_margin': plugin_config.get('page_left_margin'),
-            'page_right_margin': plugin_config.get('page_right_margin'),
-            'label_height': plugin_config.get('label_height'),
-            'label_width': plugin_config.get('label_width'),
+            'page_rows': print_config.page_rows.value,
+            'page_columns': print_config.page_columns.value,
+            'page_width': print_config.page_width.value,
+            'page_height': print_config.page_height.value,
+            'page_top_margin': print_config.page_top_margin.value,
+            'page_bottom_margin': print_config.page_bottom_margin.value,
+            'page_left_margin': print_config.page_left_margin.value,
+            'page_right_margin': print_config.page_right_margin.value,
+            'label_height': print_config.label_height.value,
+            'label_width': print_config.label_width.value,
             'row_range': range(1, grid.rows + 1),
             'col_range': range(1, grid.columns + 1),
-            'scale': next(iter(scales)),
+            'scale': next(iter(print_config.scales)),
             'model': model,  # TODO: what is model?
             'blank_spaces': blank_spaces,
         }
