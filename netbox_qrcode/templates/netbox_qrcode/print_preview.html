@@ -41,6 +41,7 @@
   height: {{ page_height }};
   background: white;
   box-sizing: border-box;
+  /* outline: 2px solid #007bff; */ /* Uncomment to add outline for debuging */
 }
 .qr-preview-grid {
   display: grid;
@@ -93,6 +94,52 @@
     height: auto;
   }
 }
+
+/* Print Controls */
+.print-control {
+  display: grid;
+  grid-template-columns: 160px auto; /* Label and input columns */
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 8px;
+}
+
+.print-control label {
+  text-align: right;
+  padding-right: 10px;
+}
+
+.print-control input {
+  width: 80px; /* Consistent input width */
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Optional: small visual tweak for hover/focus */
+.print-control input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 2px rgba(0, 123, 255, 0.4);
+}
+
+/* Responsive stacking for smaller screens */
+@media (max-width: 600px) {
+  .print-control {
+    grid-template-columns: 1fr;
+  }
+
+  .print-control label {
+    text-align: left;
+    margin-bottom: 4px;
+    padding-right: 0;
+  }
+
+  .print-control input {
+    width: 100%;
+  }
+}
+
 </style>
 
 <h2>{% trans "QR Code Print Preview" %} ({{ model|meta:"verbose_name_plural"|capfirst }})</h2>
@@ -117,44 +164,68 @@
           <input type="hidden" name="pk" value="{{ obj.pk }}">
         {% endif %}
       {% endfor %}
-      <label for="blankInput">{% trans "Blank Labels Before Start" %}</label>
-      <input type="number" id="blankInput" name="blank_spaces" min="0" max="50" value="{{ blank_spaces|default:0 }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
-      <label for="pageRowsInput">{% trans "Page Rows" %}</label>
-      <input type="number" id="pageRowsInput" name="page_rows" value="{{ page_rows }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-int">
+        <label for="blankInput">{% trans "Blank Labels Before Start" %}</label>
+        <input type="number" id="blankInput" name="blank_spaces" min="0" max="50" value="{{ blank_spaces|default:0 }}" class="form-control" />
+      </div>
 
-      <label for="pageColumnsInput">{% trans "Page Columns" %}</label>
-      <input type="number" id="pageColumnsInput" name="page_columns" value="{{ page_columns }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-int">
+        <label for="pageRowsInput">{% trans "Page Rows" %}</label>
+        <input type="number" id="pageRowsInput" name="page_rows" value="{{ page_rows }}" class="form-control" />
+      </div>
+
+      <div class="print-control print-control-int">
+        <label for="pageColumnsInput">{% trans "Page Columns" %}</label>
+        <input type="number" id="pageColumnsInput" name="page_columns" value="{{ page_columns }}" class="form-control" />
+      </div>
 
       <hr>
 
       <!-- Float fields -->
-      <label for="labelHeightInput">{% trans "Label Height" %}</label>
-      <input type="text" id="labelHeightInput" name="label_height" value="{{ label_height }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="labelHeightInput">{% trans "Label Height" %}</label>
+        <input type="text" id="labelHeightInput" name="label_height" value="{{ label_height }}" class="form-control" />
+      </div>
 
-      <label for="labelWidthInput">{% trans "Label Width" %}</label>
-      <input type="text" id="labelWidthInput" name="label_width" value="{{ label_width }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="labelWidthInput">{% trans "Label Width" %}</label>
+        <input type="text" id="labelWidthInput" name="label_width" value="{{ label_width }}" class="form-control" />
+      </div>
 
-      <label for="pageWidthInput">{% trans "Page Width" %}</label>
-      <input type="text" id="pageWidthInput" name="page_width" value="{{ page_width }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageWidthInput">{% trans "Page Width" %}</label>
+        <input type="text" id="pageWidthInput" name="page_width" value="{{ page_width }}" class="form-control" />
+      </div>
 
-      <label for="pageHeightInput">{% trans "Page Height" %}</label>
-      <input type="text" id="pageHeightInput" name="page_height" value="{{ page_height }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageHeightInput">{% trans "Page Height" %}</label>
+        <input type="text" id="pageHeightInput" name="page_height" value="{{ page_height }}" class="form-control" />
+      </div>
 
-      <label for="pageTopMarginInput">{% trans "Top Margin" %}</label>
-      <input type="text" id="pageTopMarginInput" name="page_top_margin" value="{{ page_top_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageTopMarginInput">{% trans "Top Margin" %}</label>
+        <input type="text" id="pageTopMarginInput" name="page_top_margin" value="{{ page_top_margin }}" class="form-control" />
+      </div>
 
-      <label for="pageBottomMarginInput">{% trans "Bottom Margin" %}</label>
-      <input type="text" id="pageBottomMarginInput" name="page_bottom_margin" value="{{ page_bottom_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageBottomMarginInput">{% trans "Bottom Margin" %}</label>
+        <input type="text" id="pageBottomMarginInput" name="page_bottom_margin" value="{{ page_bottom_margin }}" class="form-control" />
+      </div>
 
-      <label for="pageLeftMarginInput">{% trans "Left Margin" %}</label>
-      <input type="text" id="pageLeftMarginInput" name="page_left_margin" value="{{ page_left_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageLeftMarginInput">{% trans "Left Margin" %}</label>
+        <input type="text" id="pageLeftMarginInput" name="page_left_margin" value="{{ page_left_margin }}" class="form-control" />
+      </div>
 
-      <label for="pageRightMarginInput">{% trans "Right Margin" %}</label>
-      <input type="text" id="pageRightMarginInput" name="page_right_margin" value="{{ page_right_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageRightMarginInput">{% trans "Right Margin" %}</label>
+        <input type="text" id="pageRightMarginInput" name="page_right_margin" value="{{ page_right_margin }}" class="form-control" />
+      </div>
       <div style-="margin-top: 10px;">
-        <button type="submit" class="btn btn-green btn-sm">
+        <!-- This isn't needed, js autoupdates this -->
+        <!-- <button type="submit" class="btn btn-green btn-sm">
           <i class="mdi mdi-refresh" aria-hidden="true"></i> {% trans "Update Preview" %}
-        </button>
+        </button> -->
         <button type="button" onclick="printPageArea()" class="btn btn-yellow btn-sm">
           <i class="mdi mdi-printer" aria-hidden="true"></i> {% trans "Print" %}
         </button>
