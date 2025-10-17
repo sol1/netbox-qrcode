@@ -54,10 +54,8 @@ from .template_content import (
     ModuleQRCode,
 )
 from .grid import GridPosition
-from .utilities import to_int, to_float
+from .config import QRPrintConfig
 from .form import PrintSettingsForm
-
-import math
 
 class QRCodePrintBaseView(generic.ObjectListView):
     bulk_url_name = None
@@ -184,75 +182,6 @@ def extract_mm(value, default):
     except (TypeError, ValueError):
         return default
 
-class QRPrintConfigValue:
-    """Represents a single print config field with layered sources (config, request)."""
-    def __init__(self, name: str, field_type: type, config: str | None = None, request: str | None = None):
-        self.name = name
-        self.type = field_type
-        self.config = config
-        self.request = request
-        self.grid = None
-        self.scale = None
-
-        self.__set_grid()
-
-    @property
-    def value(self):
-        """Return the best (highest priority) value."""
-        if self.request is not None:
-            return self.request
-        else:
-            return self.config
-
-    def __set_grid(self):
-        if self.value is not None:
-            if self.type == int:
-                self.grid, self.scale = to_int(self.value)
-            elif self.type == float:
-                self.grid, self.scale = to_float(self.value)
-
-    def __repr__(self):
-        """Debug-friendly representation."""
-        return f"<QRConfigValue {self.name}={self.value!r}>"
-
-class QRPrintConfig:
-    """Print configuration where only grid values are type-cast."""
-    field_types: dict[str, type] = {
-        'page_rows': int,
-        'page_columns': int,
-        'label_height': float,
-        'label_width': float,
-        'page_width': float,
-        'page_height': float,
-        'page_top_margin': float,
-        'page_bottom_margin': float,
-        'page_left_margin': float,
-        'page_right_margin': float,
-    }    
-
-    def __init__(self, plugin_config: dict, request_get: dict):
-        self._plugin_config = plugin_config
-        self._request = request_get
-
-        for name, ftype in self.field_types.items():
-            plugin_value = plugin_config.get(name, None)
-            request_value = self._request.get(name, None)
-            config_value = QRPrintConfigValue(name, ftype, config=plugin_value, request=request_value)
-            setattr(self, name, config_value)
-
-    @property
-    def scales(self):
-        """Return a set of all detected scales in the config."""
-        scales = set()
-        for name in self.field_types:
-            value: QRPrintConfigValue = getattr(self, name)
-            if value.scale is not None:
-                scales.add(value.scale)
-        return scales
-
-    def as_dict(self):
-        return {name: getattr(self, name).value for name in self.field_types}
-
 class QRCodePrintPreviewView(TemplateView):
     def get(self, request):
         # Get form config
@@ -312,29 +241,37 @@ class QRCodePrintPreviewView(TemplateView):
             raise ValueError(f"Mixed scale exception: {print_config.scales}")
 
         grid = GridPosition(
-            rows=print_config.page_rows.grid,
-            columns=print_config.page_columns.grid,
+            rows=print_config.page_rows.number,
+            columns=print_config.page_columns.number,
             elements=num_objects,
-            element_height=print_config.label_height.grid,
-            element_width=print_config.label_width.grid,
-            grid_width=print_config.page_width.grid - (print_config.page_left_margin.grid + print_config.page_right_margin.grid),
-            grid_height=print_config.page_height.grid - (print_config.page_top_margin.grid + print_config.page_bottom_margin.grid)
+            element_height=print_config.label_height.number,
+            element_width=print_config.label_width.number,
+            grid_width=print_config.page_width.number - (print_config.page_left_margin.number + print_config.page_right_margin.number),
+            grid_height=print_config.page_height.number - (print_config.page_top_margin.number + print_config.page_bottom_margin.number)
         )
 
         # TODO: We shouldn't ever get here as this should be checked when the config is loaded
-        if (grid.column_element_offset + grid.element_width) * grid.columns > print_config.page_width.grid \
-            or (grid.row_element_offset + grid.element_height) * grid.rows > print_config.page_height.grid \
+        message = None
+        message_type = None
+        if (grid.column_element_offset + grid.element_width) * grid.columns > print_config.page_width.number \
+            or (grid.row_element_offset + grid.element_height) * grid.rows > print_config.page_height.number \
             or grid.column_element_offset < 0 \
             or grid.row_element_offset < 0:
-            raise ValueError(
-                f"Labels don't fit on the page: "
-                f"grid width created = {(grid.column_element_offset + grid.element_width) * grid.columns}, "
-                f"page width = {print_config.page_width.grid}, "
-                f"grid width offset = {grid.column_element_offset}; "
-                f"grid height created = {(grid.row_element_offset + grid.element_height) * grid.rows}, "
-                f"page height = {print_config.page_height.grid}, "
-                f"grid height offset = {grid.row_element_offset}; "
-            )
+
+            message = f"Labels don't fit on the page with the current configuration."
+            # print(f"grid width created = {(grid.column_element_offset + grid.element_width) * grid.columns}")
+            # print(f"page width = {print_config.page_width.number}")
+            # print(f"grid width offset = {grid.column_element_offset}")
+            # print(f"grid height created = {(grid.row_element_offset + grid.element_height) * grid.rows}")
+            # print(f"page height = {print_config.page_height.number}")
+            # print(f"grid height offset = {grid.row_element_offset}")
+
+            if (grid.element_width * grid.columns)+(print_config.page_left_margin.number + print_config.page_right_margin.number) > print_config.page_width.number:
+                message += f"Too wide ({(grid.element_width * grid.columns)+(print_config.page_left_margin.number + print_config.page_right_margin.number)}{next(iter(print_config.scales))}) for page width ({print_config.page_width.value})."
+            if (grid.element_height * grid.rows)+(print_config.page_top_margin.number + print_config.page_bottom_margin.number) > print_config.page_height.number:
+                message += f"Too tall ({(grid.element_height * grid.rows)+(print_config.page_top_margin.number + print_config.page_bottom_margin.number)}{next(iter(print_config.scales))}) for page height ({print_config.page_height.value})."
+
+            message_type = 'error'
             
         # add blank spaces so start label isn't 1, don't know what html will want to make this work
         # Create blank placeholders
@@ -368,6 +305,8 @@ class QRCodePrintPreviewView(TemplateView):
             'scale': next(iter(print_config.scales)),
             'model': model,  # TODO: what is model?
             'blank_spaces': blank_spaces,
+            'message': message,
+            'message_type': message_type
         }
 
         if request.headers.get('HX-Request'):
