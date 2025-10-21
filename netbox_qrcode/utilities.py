@@ -1,8 +1,10 @@
 import base64
-import qrcode
 import re
 from io import BytesIO
 from typing import Any, Optional, Tuple
+
+import qrcode
+from django.conf import settings
 
 # ******************************************************************************************
 # Includes useful tools to create the content.
@@ -107,3 +109,11 @@ def get_number_and_scale(value: Any) -> Tuple[float, Optional[str]]:
             return float(num_s), (scale.strip() or None)
     raise TypeError(f"Cannot parse {value!r} as a number with optional scale")
 
+def plugin_inventory_installed():
+    """
+    Check if the NetBox Inventory plugin is installed.
+
+    Returns:
+        bool: True if the plugin is installed, False otherwise.
+    """
+    return 'netbox_inventory' in settings.PLUGINS

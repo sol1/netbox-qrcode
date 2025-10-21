@@ -1,6 +1,8 @@
-from netbox.plugins import PluginMenu, PluginMenuButton, PluginMenuItem
+from netbox.plugins import PluginMenu, PluginMenuItem
 
-menu_items = (
+from .utilities import plugin_inventory_installed
+
+menu_items = [
     PluginMenuItem(
         link='plugins:netbox_qrcode:qrcode_print_device',
         link_text='Devices',
@@ -29,7 +31,15 @@ menu_items = (
         link='plugins:netbox_qrcode:qrcode_print_module',
         link_text='Modules',
     ),
-)
+]
+
+if plugin_inventory_installed():
+    menu_items.append(
+        PluginMenuItem(
+            link='plugins:netbox_qrcode:qrcode_print_asset',
+            link_text='Assets',
+        )
+    )
 
 menu = PluginMenu(
     label='QR Code',

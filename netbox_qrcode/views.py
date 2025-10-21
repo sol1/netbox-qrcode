@@ -54,7 +54,7 @@ from .template_content import (
     ModuleQRCode,
 )
 from .grid import GridPosition
-from .utilities import to_int, to_float
+from .utilities import to_int, to_float, plugin_inventory_installed
 from .form import PrintSettingsForm
 
 import math
@@ -80,6 +80,8 @@ class QRCodePrintBaseView(generic.ObjectListView):
         table.columns.show('pk')
         table.columns.hide('actions')
         table.configure(request)
+
+        print(settings.PLUGINS)
 
         if htmx_partial(request):
             if request.GET.get('embedded', False):
@@ -176,7 +178,48 @@ class ModuleQRCodePrintView(QRCodePrintBaseView):
     bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_module'
     print_settings_form = PrintSettingsForm
 
-def extract_mm(value, default):
+
+if plugin_inventory_installed():
+    class AssetQRCodePrintView(QRCodePrintBaseView):
+        from netbox_inventory.filtersets import AssetFilterSet
+        from netbox_inventory.forms import AssetFilterForm
+        from netbox_inventory.models import Asset
+        from netbox_inventory.tables import AssetTable
+
+        queryset = Asset.objects.all()
+        filterset = AssetFilterSet
+        filterset_form = AssetFilterForm
+        table = AssetTable
+        bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_asset'
+        print_settings_form = PrintSettingsForm
+        
+        def get_extra_context(self, request, instance=None):
+            context = super().get_extra_context(request, instance)
+            context['return_url'] = reverse('plugins:netbox_inventory:asset_list')
+            return context
+
+        def get(self, request):
+            queryset = self.filterset(request.GET, self.queryset, request=request).qs
+            table = self.get_table(queryset, request)
+            table.columns.show('pk')
+            table.columns.hide('actions')
+            table.configure(request)
+
+            return render(
+                request,
+                self.get_template_name(),
+                context={
+                    'model': queryset.model,
+                    'table': table,
+                    'filter_form': self.filterset_form(request.GET),
+                    'template_url': self.get_template_name(),
+                    'bulk_action_url': reverse(self.bulk_url_name),
+                    'return_url': reverse('plugins:netbox_inventory:asset_list'),
+                },
+            )
+
+
+def extract_3mm(value, default):
     try:
         if isinstance(value, str) and value.endswith('mm'):
             return float(value.rstrip('mm'))
@@ -210,6 +253,14 @@ class QRCodePrintPreviewView(TemplateView):
             'powerpanel': PowerPanelQRCode,
             'module': ModuleQRCode,
         }
+
+        if plugin_inventory_installed():
+            from netbox_inventory.models import Asset
+            from .template_content import Plugin_NetboxInventory_AssetQRCode
+
+            model_map['asset'] = Asset
+            extension_map['asset'] = Plugin_NetboxInventory_AssetQRCode
+
         model = model_map.get(model_name)
         extension_class = extension_map.get(model_name)
         plugin_config = settings.PLUGINS_CONFIG.get('netbox_qrcode', {})

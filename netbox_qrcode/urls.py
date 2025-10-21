@@ -10,5 +10,7 @@ urlpatterns = (
     path('print/power-feeds/', views.PowerFeedQRCodePrintView.as_view(), name='qrcode_print_powerfeed'),
     path('print/power-panels/', views.PowerPanelQRCodePrintView.as_view(), name='qrcode_print_powerpanel'),
     path('print/modules/', views.ModuleQRCodePrintView.as_view(), name='qrcode_print_module'),
+    path('print/assets/', views.AssetQRCodePrintView.as_view(), name='qrcode_print_asset'),
+
     path('print/preview/', views.QRCodePrintPreviewView.as_view(), name='qrcode_print_preview'),
 )
