@@ -21,7 +21,7 @@ class QRCode(PluginTemplateExtension):
     # --------------------------------
     # Parameter:
     #   labelDesignNo: Which label design should be loaded.
-    def Create_SubPluginContent(self, labelDesignNo, template_name='netbox_qrcode/qrcode3.html'):
+    def Create_SubPluginContent(self, labelDesignNo, template_name='netbox_qrcode/qrcode3.html', label_width=None, label_height=None):
         
         thisSelf = self
 
@@ -29,6 +29,12 @@ class QRCode(PluginTemplateExtension):
 
         # Config suitable for the module
         config = config_for_modul(thisSelf, labelDesignNo)
+        
+        # Allow use config label dimensions if not passed in
+        if label_width is None:
+            label_width = config.get('label_width')
+        if label_height is None:
+            label_height = config.get('label_height')
 
         # Abort if no config data. 
         if config is None: 
@@ -65,8 +71,8 @@ class QRCode(PluginTemplateExtension):
                                                                     'label_qr_width': config.get('label_qr_width'),
                                                                     'label_qr_height': config.get('label_qr_height'),
                                                                     'label_qr_text_distance': config.get('label_qr_text_distance'),
-                                                                    'label_width': config.get('label_width'),
-                                                                    'label_height': config.get('label_height'), 
+                                                                    'label_width': label_width,
+                                                                    'label_height': label_height, 
                                                                     'label_edge_top': config.get('label_edge_top'),
                                                                     'label_edge_left': config.get('label_edge_left'),
                                                                     'label_edge_right': config.get('label_edge_right'),

@@ -7,19 +7,61 @@
     window.print();
   }
 
-  function updateUrlParam(name, value) {
+// Helper to show a message
+function showMessage(text, type = "default") {
+  const messageDiv = document.getElementById("controls-message");
+  if (!messageDiv) return;
+
+  if (type === "error") {
+    messageDiv.className = "alert alert-danger bg-danger-subtle";
+    messageDiv.innerHTML = `
+      <i class="mdi mdi-alert-circle-outline me-2"></i>
+      <div>${text}</div>
+    `;
+  } else if (type === "default") {
+    messageDiv.className = "text-muted";
+    if (text === undefined) {
+      messageDiv.innerHTML = text;
+    } else {
+      messageDiv.innerHTML = `{% trans "Adjust print settings and layout before printing." %}`;
+    }
+  }
+}
+
+function updateUrlParam(name, value) {
+  // Only allow integers, floats, or numbers with suffix (for example mm/cm/in)
+  const validPattern = /^(\d+(\.\d+)?)([a-zA-Z]*)$/;
+
+  if (!validPattern.test(value)) {
+    showMessage(`Invalid value for ${name}: ${value}`, "error");
+    return; // Stop if value is not valid
+  }
+
+  // Normalize value (optional, trim spaces)
+  value = value.trim();
+
+  try {
     const url = new URL(window.location.href);
     const params = url.searchParams;
+
     params.set(name, value);
-    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}`);
-    window.location.reload()
+
+    // Optional: only reload if the value actually changed
+    if (window.location.search !== `?${params.toString()}`) {
+      window.history.replaceState({}, "", `${url.pathname}?${params.toString()}`);
+      window.location.reload();
+    }
+
+  } catch (error) {
+    console.error("Failed to update URL:", error);
   }
+}
 
   // Attach listener once the page is ready
   document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("settingsForm");
     if (form) {
-      form.addEventListener("input", (event) => {
+      form.addEventListener("change", (event) => {
         const target = event.target;
         if (target.name && target.value !== undefined) {
           updateUrlParam(target.name, target.value);
@@ -41,6 +83,8 @@
   height: {{ page_height }};
   background: white;
   box-sizing: border-box;
+  /* Uncomment to add outline to pages for debuging */
+  /* outline: 2px solid #007bff;  */
 }
 .qr-preview-grid {
   display: grid;
@@ -93,6 +137,52 @@
     height: auto;
   }
 }
+
+/* Print Controls */
+.print-control {
+  display: grid;
+  grid-template-columns: 160px auto; /* Label and input columns */
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 8px;
+}
+
+.print-control label {
+  text-align: right;
+  padding-right: 10px;
+}
+
+.print-control input {
+  width: 80px; /* Consistent input width */
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Optional: small visual tweak for hover/focus */
+.print-control input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 2px rgba(0, 123, 255, 0.4);
+}
+
+/* Responsive stacking for smaller screens */
+@media (max-width: 600px) {
+  .print-control {
+    grid-template-columns: 1fr;
+  }
+
+  .print-control label {
+    text-align: left;
+    margin-bottom: 4px;
+    padding-right: 0;
+  }
+
+  .print-control input {
+    width: 100%;
+  }
+}
+
 </style>
 
 <h2>{% trans "QR Code Print Preview" %} ({{ model|meta:"verbose_name_plural"|capfirst }})</h2>
@@ -106,9 +196,19 @@
   
   <div class="controls">
     <h3>{% trans "Controls" %}</h3>
-    <p class="text-muted">
-      {% trans "Adjust print settings and layout before printing." %}
-    </p>
+    {% if message_type == 'error' %}
+      <div id="controls-message" class="alert alert-danger bg-danger-subtle">
+        <i class="mdi mdi-alert-circle-outline me-2"></i>
+        <div>
+          {{ message }}  
+        </div>
+      </div>
+    {% else %}
+      <div id="controls-message" class="text-muted">
+        {% trans "Adjust print settings and layout before printing." %}
+      </div>
+    {% endif %}
+
 
     <form id="settingsForm" hx-get="{% url 'plugins:netbox_qrcode:qrcode_print_preview' %}" hx-target="#preview-container" hx-swap="innerHTML" hx-push-url="false" style="margin-bottom: 1em;">
       <input type="hidden" name="model" value="{{ model|meta:'model_name' }}">
@@ -117,45 +217,69 @@
           <input type="hidden" name="pk" value="{{ obj.pk }}">
         {% endif %}
       {% endfor %}
-      <label for="blankInput">{% trans "Blank Labels Before Start" %}</label>
-      <input type="number" id="blankInput" name="blank_spaces" min="0" max="50" value="{{ blank_spaces|default:0 }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
-      <label for="pageRowsInput">{% trans "Page Rows" %}</label>
-      <input type="number" id="pageRowsInput" name="page_rows" value="{{ page_rows }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-int">
+        <label for="blankInput">{% trans "Blank Labels at Start" %}</label>
+        <input type="number" id="blankInput" name="blank_spaces" min="0" max="50" value="{{ blank_spaces|default:0 }}" class="form-control" />
+      </div>
 
-      <label for="pageColumnsInput">{% trans "Page Columns" %}</label>
-      <input type="number" id="pageColumnsInput" name="page_columns" value="{{ page_columns }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-int">
+        <label for="pageRowsInput">{% trans "Page Rows" %}</label>
+        <input type="number" id="pageRowsInput" name="page_rows" value="{{ page_rows }}" class="form-control" />
+      </div>
+
+      <div class="print-control print-control-int">
+        <label for="pageColumnsInput">{% trans "Page Columns" %}</label>
+        <input type="number" id="pageColumnsInput" name="page_columns" value="{{ page_columns }}" class="form-control" />
+      </div>
 
       <hr>
 
       <!-- Float fields -->
-      <label for="labelHeightInput">{% trans "Label Height" %}</label>
-      <input type="text" id="labelHeightInput" name="label_height" value="{{ label_height }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="labelHeightInput">{% trans "Label Height" %}</label>
+        <input type="text" id="labelHeightInput" name="label_height" value="{{ label_height }}" class="form-control" />
+      </div>
 
-      <label for="labelWidthInput">{% trans "Label Width" %}</label>
-      <input type="text" id="labelWidthInput" name="label_width" value="{{ label_width }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="labelWidthInput">{% trans "Label Width" %}</label>
+        <input type="text" id="labelWidthInput" name="label_width" value="{{ label_width }}" class="form-control" />
+      </div>
 
-      <label for="pageWidthInput">{% trans "Page Width" %}</label>
-      <input type="text" id="pageWidthInput" name="page_width" value="{{ page_width }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageWidthInput">{% trans "Page Width" %}</label>
+        <input type="text" id="pageWidthInput" name="page_width" value="{{ page_width }}" class="form-control" />
+      </div>
 
-      <label for="pageHeightInput">{% trans "Page Height" %}</label>
-      <input type="text" id="pageHeightInput" name="page_height" value="{{ page_height }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageHeightInput">{% trans "Page Height" %}</label>
+        <input type="text" id="pageHeightInput" name="page_height" value="{{ page_height }}" class="form-control" />
+      </div>
 
-      <label for="pageTopMarginInput">{% trans "Top Margin" %}</label>
-      <input type="text" id="pageTopMarginInput" name="page_top_margin" value="{{ page_top_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageTopMarginInput">{% trans "Top Margin" %}</label>
+        <input type="text" id="pageTopMarginInput" name="page_top_margin" value="{{ page_top_margin }}" class="form-control" />
+      </div>
 
-      <label for="pageBottomMarginInput">{% trans "Bottom Margin" %}</label>
-      <input type="text" id="pageBottomMarginInput" name="page_bottom_margin" value="{{ page_bottom_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageBottomMarginInput">{% trans "Bottom Margin" %}</label>
+        <input type="text" id="pageBottomMarginInput" name="page_bottom_margin" value="{{ page_bottom_margin }}" class="form-control" />
+      </div>
 
-      <label for="pageLeftMarginInput">{% trans "Left Margin" %}</label>
-      <input type="text" id="pageLeftMarginInput" name="page_left_margin" value="{{ page_left_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageLeftMarginInput">{% trans "Left Margin" %}</label>
+        <input type="text" id="pageLeftMarginInput" name="page_left_margin" value="{{ page_left_margin }}" class="form-control" />
+      </div>
 
-      <label for="pageRightMarginInput">{% trans "Right Margin" %}</label>
-      <input type="text" id="pageRightMarginInput" name="page_right_margin" value="{{ page_right_margin }}" class="form-control" style="width: 80px; display: inline-block; margin-right: 8px;" />
+      <div class="print-control print-control-float">
+        <label for="pageRightMarginInput">{% trans "Right Margin" %}</label>
+        <input type="text" id="pageRightMarginInput" name="page_right_margin" value="{{ page_right_margin }}" class="form-control" />
+      </div>
       <div style-="margin-top: 10px;">
-        <button type="submit" class="btn btn-green btn-sm">
+        <!-- This isn't needed, js autoupdates this -->
+        <!-- <button type="submit" class="btn btn-green btn-sm">
           <i class="mdi mdi-refresh" aria-hidden="true"></i> {% trans "Update Preview" %}
-        </button>
-        <button type="button" onclick="printPageArea()" class="btn btn-yellow btn-sm">
+        </button> -->
+        <button type="button" onclick="printPageArea()" class="btn btn-md btn-primary">
           <i class="mdi mdi-printer" aria-hidden="true"></i> {% trans "Print" %}
         </button>
       </div>
