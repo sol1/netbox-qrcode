@@ -7,19 +7,61 @@
     window.print();
   }
 
-  function updateUrlParam(name, value) {
+// Helper to show a message
+function showMessage(text, type = "default") {
+  const messageDiv = document.getElementById("controls-message");
+  if (!messageDiv) return;
+
+  if (type === "error") {
+    messageDiv.className = "alert alert-danger bg-danger-subtle";
+    messageDiv.innerHTML = `
+      <i class="mdi mdi-alert-circle-outline me-2"></i>
+      <div>${text}</div>
+    `;
+  } else if (type === "default") {
+    messageDiv.className = "text-muted";
+    if (text === undefined) {
+      messageDiv.innerHTML = text;
+    } else {
+      messageDiv.innerHTML = `{% trans "Adjust print settings and layout before printing." %}`;
+    }
+  }
+}
+
+function updateUrlParam(name, value) {
+  // Only allow integers, floats, or numbers with suffix (for example mm/cm/in)
+  const validPattern = /^(\d+(\.\d+)?)([a-zA-Z]*)$/;
+
+  if (!validPattern.test(value)) {
+    showMessage(`Invalid value for ${name}: ${value}`, "error");
+    return; // Stop if value is not valid
+  }
+
+  // Normalize value (optional, trim spaces)
+  value = value.trim();
+
+  try {
     const url = new URL(window.location.href);
     const params = url.searchParams;
+
     params.set(name, value);
-    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}`);
-    window.location.reload()
+
+    // Optional: only reload if the value actually changed
+    if (window.location.search !== `?${params.toString()}`) {
+      window.history.replaceState({}, "", `${url.pathname}?${params.toString()}`);
+      window.location.reload();
+    }
+
+  } catch (error) {
+    console.error("Failed to update URL:", error);
   }
+}
 
   // Attach listener once the page is ready
   document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("settingsForm");
     if (form) {
-      form.addEventListener("input", (event) => {
+      form.addEventListener("change", (event) => {
         const target = event.target;
         if (target.name && target.value !== undefined) {
           updateUrlParam(target.name, target.value);
@@ -155,14 +197,14 @@
   <div class="controls">
     <h3>{% trans "Controls" %}</h3>
     {% if message_type == 'error' %}
-      <div class="alert alert-danger bg-danger-subtle">
+      <div id="controls-message" class="alert alert-danger bg-danger-subtle">
         <i class="mdi mdi-alert-circle-outline me-2"></i>
         <div>
           {{ message }}  
         </div>
       </div>
     {% else %}
-      <div class="text-muted">
+      <div id="controls-message" class="text-muted">
         {% trans "Adjust print settings and layout before printing." %}
       </div>
     {% endif %}
