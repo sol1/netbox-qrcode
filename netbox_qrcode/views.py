@@ -54,7 +54,7 @@ from .template_content import (
     ModuleQRCode,
 )
 from .grid import GridPosition
-from .config import QRPrintConfig
+from .configs import QRPrintConfig
 from .utilities import plugin_inventory_installed
 from .form import PrintSettingsForm
 

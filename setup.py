@@ -11,9 +11,17 @@ def read(rel_path):
     with codecs.open(os.path.join(here, rel_path), 'r') as fp:
         return fp.read()
 
+def get_version(rel_path):
+    for line in read(rel_path).splitlines():
+        if line.startswith('__version__'):
+            delim = '"' if '"' in line else "'"
+            return line.split(delim)[1]
+    else:
+        raise RuntimeError("Unable to find version string.")
+
 setup(
     name='netbox-qrcode',
-    version='0.0.19',
+    version=get_version('netbox_qrcode/version.py'),
     description='QR Code generation for netbox objects',
     long_description=long_description,
     long_description_content_type="text/markdown",
