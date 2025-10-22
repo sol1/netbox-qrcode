@@ -33,6 +33,12 @@ menu_items = [
     ),
 ]
 
+menu = PluginMenu(
+    label='QR Code',
+    groups=(('QR Code Bulk Printing', menu_items),),
+    icon_class='mdi mdi-qrcode',
+)
+
 if plugin_inventory_installed():
     menu_items.append(
         PluginMenuItem(
@@ -40,9 +46,3 @@ if plugin_inventory_installed():
             link_text='Assets',
         )
     )
-
-menu = PluginMenu(
-    label='QR Code',
-    groups=(('QR Code Bulk Printing', menu_items),),
-    icon_class='mdi mdi-qrcode',
-)

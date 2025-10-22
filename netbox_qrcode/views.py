@@ -54,7 +54,8 @@ from .template_content import (
     ModuleQRCode,
 )
 from .grid import GridPosition
-from .utilities import to_int, to_float, plugin_inventory_installed
+from .config import QRPrintConfig
+from .utilities import plugin_inventory_installed
 from .form import PrintSettingsForm
 
 class QRCodePrintBaseView(generic.ObjectListView):
@@ -177,8 +178,8 @@ class ModuleQRCodePrintView(QRCodePrintBaseView):
     print_settings_form = PrintSettingsForm
 
 
-if plugin_inventory_installed():
-    class AssetQRCodePrintView(QRCodePrintBaseView):
+class AssetQRCodePrintView(QRCodePrintBaseView):
+    if plugin_inventory_installed():
         from netbox_inventory.filtersets import AssetFilterSet
         from netbox_inventory.forms import AssetFilterForm
         from netbox_inventory.models import Asset
@@ -190,7 +191,7 @@ if plugin_inventory_installed():
         table = AssetTable
         bulk_url_name = 'plugins:netbox_qrcode:qrcode_print_asset'
         print_settings_form = PrintSettingsForm
-        
+
         def get_extra_context(self, request, instance=None):
             context = super().get_extra_context(request, instance)
             context['return_url'] = reverse('plugins:netbox_inventory:asset_list')
@@ -309,7 +310,7 @@ class QRCodePrintPreviewView(TemplateView):
             or grid.column_element_offset < 0 \
             or grid.row_element_offset < 0:
 
-            message = f"Labels don't fit on the page with the current configuration."
+            message = "Labels don't fit on the page with the current configuration."
             # print(f"grid width created = {(grid.column_element_offset + grid.element_width) * grid.columns}")
             # print(f"page width = {print_config.page_width.number}")
             # print(f"grid width offset = {grid.column_element_offset}")
